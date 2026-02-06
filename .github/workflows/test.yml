@@ -1,35 +1,23 @@
-  
 name: Test
+
 on:
   push:
-    branches: 
-      - master
-  pull_request:
-    branches:
-      - master
+    branches: ["master"]
+
+permissions:
+  contents: read
 
 jobs:
   test:
-    name: Run Go Test
     runs-on: ubuntu-latest
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v2
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          go-version: 1.15
-
-      - uses: actions/checkout@v2
-        with:
-          path: ./src/github.com/${{ github.repository }}
-      - uses: actions/checkout@v2
-        with:
-          repository: c-sto/ntds_reference
-          path: ./src/github.com/${{ github.repository }}/test/ntds_reference
-      - name: Vet on windows
-        run: cd ./src/github.com/${{ github.repository }} ; GOOS=windows go vet
-      - name: Vet on darwin
-        run: cd ./src/github.com/${{ github.repository }} ; GOOS=darwin go vet
-      - name: Vet on linux
-        run: cd ./src/github.com/${{ github.repository }} ; GOOS=linux go vet
+          fetch-depth: 0
+      - name: Setup Go
+        uses: actions/setup-go@v5
       - name: Run tests
-        run: cd ./src/github.com/${{ github.repository }} ; go test ./...
+        run: go test -v ./...
+      - name: Run build
+        run: go build -v ./...

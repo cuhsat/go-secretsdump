@@ -1,8 +1,10 @@
-module github.com/C-Sto/gosecretsdump
+module github.com/cuhsat/go-secretsdump
 
-go 1.10
+go 1.25
+
+require golang.org/x/text v0.33.0
 
 require (
-	golang.org/x/sys v0.0.0-20200501145240-bc7a7d42d5c3
-	golang.org/x/text v0.3.2
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	www.velocidex.com/golang/regparser v0.0.0-20250203141505-31e704a67ef7 // indirect
 )
