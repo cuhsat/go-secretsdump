@@ -29,7 +29,7 @@ func New(system, ntds string) (Reader, error) {
 		printUserStatus:    false,
 		systemHiveLocation: system,
 		ntdsFileLocation:   ntds,
-		userData:           make(chan Info, 500),
+		userData:           make(chan Credentials, 500),
 	}
 
 	var err error
@@ -76,7 +76,7 @@ type Reader struct {
 	tmpUsers []ese.Esent_record
 
 	//output chans
-	userData    chan Info
+	userData    chan Credentials
 	decryptWork chan ese.Esent_record
 	cryptwg     *sync.WaitGroup
 
@@ -84,7 +84,7 @@ type Reader struct {
 }
 
 // Chan returns a reference to the objects output channel for read only operations
-func (d *Reader) Chan() <-chan Info {
+func (d *Reader) Chan() <-chan Credentials {
 	return d.userData
 }
 

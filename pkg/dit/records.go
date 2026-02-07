@@ -11,8 +11,8 @@ import (
 	"golang.org/x/text/encoding/unicode"
 )
 
-func (d *Reader) DecryptRecord(record ese.Esent_record) (Info, error) {
-	dh := Info{}
+func (d *Reader) DecryptRecord(record ese.Esent_record) (Credentials, error) {
+	dh := Credentials{}
 	v, _ := record.GetBytVal(nobjectSid)
 	sid, err := NewSAMRRPCSID(v) //record.Column[z].BytVal)
 	if err != nil {
@@ -150,14 +150,14 @@ func (d *Reader) DecryptRecord(record ese.Esent_record) (Info, error) {
 	}
 	//check if account is enabled
 	if v, _ := record.GetLongVal(nuserAccountControl); v != 0 { // record.Column[nuserAccountControl"]].Long; v != 0 {
-		dh.UAC = decodeUAC(int(v))
+		dh.Uac = decodeUAC(int(v))
 	}
 
 	//check if cleartext exists
 	if val, _ := record.GetBytVal(nsupplementalCredentials); len(val) > 24 {
 		//if val := record.Column[nsupplementalCredentials"]]; len(val.BytVal) > 24 {
 		var err error
-		dh.Supp, err = d.decryptSupp(record)
+		dh.Supplemental, err = d.decryptSupp(record)
 		if err != nil {
 			fmt.Println("Error: ", err)
 		}
@@ -166,8 +166,8 @@ func (d *Reader) DecryptRecord(record ese.Esent_record) (Info, error) {
 	return dh, nil
 }
 
-func (d *Reader) decryptSupp(record ese.Esent_record) (SuppInfo, error) {
-	r := SuppInfo{}
+func (d *Reader) decryptSupp(record ese.Esent_record) (Supplemental, error) {
+	r := Supplemental{}
 
 	bval, _ := record.GetBytVal(nsupplementalCredentials) // record.Column[nsupplementalCredentials"]]
 	if len(bval) > 24 {                                   //is the value above the minimum for plaintex passwords?
