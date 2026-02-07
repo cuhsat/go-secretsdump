@@ -6,7 +6,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"os"
+	"io"
 )
 
 //props to agsolino for doing the original impacket version of this. The file format is clearly a mindfuck, and it would not have been easy.
@@ -19,7 +19,7 @@ type fileInMem struct {
 
 type Esedb struct {
 	//options?
-	filename     string
+	reader       io.Reader
 	pageSize     uint32
 	db           *fileInMem
 	dbHeader     esent_db_header
@@ -35,18 +35,18 @@ var stringCodePages = map[uint32]string{
 	1252:  "cp1252",
 } //standin for const lookup/enum thing
 
-func New(fn string) (*Esedb, error) {
+func New(r io.Reader, n int) (*Esedb, error) {
 	//create the esedb structure
-	r := &Esedb{
-		filename: fn,
+	db := &Esedb{
+		reader:   r,
 		pageSize: pageSize,
 		tables:   make(map[string]*table),
 		isRemote: false,
 	}
 
 	//'mount' the database (parse the file)
-	err := r.mountDb(fn)
-	return r, err
+	err := db.mountDb(r, n)
+	return db, err
 }
 
 // OpenTable opens a table, and returns a cursor pointing to the current parsing state
@@ -108,9 +108,9 @@ func (e *Esedb) OpenTable(s string) (*Cursor, error) {
 	return &r, nil
 }
 
-func (e *Esedb) mountDb(filename string) (err error) {
+func (e *Esedb) mountDb(r io.Reader, n int) (err error) {
 	//the first page is the dbheader
-	err = e.loadPages(filename)
+	err = e.loadPages(r, n)
 	if err != nil {
 		return
 	}
@@ -285,18 +285,10 @@ func (e *Esedb) getMainHeader(data []byte) (esent_db_header, error) {
 	return dbhd, err
 }
 
-func (e *Esedb) loadPages(fn string) error {
-
-	f, err := os.Open(fn)
-	if err != nil {
-		return err
-	}
-	sts, _ := f.Stat()
+func (e *Esedb) loadPages(r io.Reader, n int) error {
+	var err error
 	e.db = &fileInMem{}
-	fr := bufio.NewReader(f)
-	defer func(f *os.File) {
-		_ = f.Close()
-	}(f)
+	fr := bufio.NewReader(r)
 	hdr := make([]byte, e.pageSize)
 	_, _ = fr.Read(hdr)
 	e.dbHeader, err = e.getMainHeader(hdr)
@@ -305,19 +297,19 @@ func (e *Esedb) loadPages(fn string) error {
 	}
 	e.pageSize = e.dbHeader.PageSize
 
-	pages := int(sts.Size()) / int(e.pageSize)
+	pages := n / int(e.pageSize)
 	e.db.pages = make([]*esent_page, pages)
 	e.totalPages = uint32(pages - 2) //unsure why -2 at this stage, I assume first page is header and last page is tail?
 
 	for i := uint32(1); i < e.totalPages; i++ {
 		start := i * e.pageSize
-		if int(start) > int(sts.Size()) {
+		if int(start) > n {
 			return nil
 		}
 		end := start + e.pageSize
 		//r := make([]byte, count)
-		if int(end) > int(sts.Size()) {
-			end = uint32(sts.Size())
+		if int(end) > n {
+			end = uint32(n)
 		}
 		e.db.pages[i] = &esent_page{data: make([]byte, e.pageSize)}
 		r := e.db.pages[i]

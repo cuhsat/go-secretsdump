@@ -1,6 +1,7 @@
 package test
 
 import (
+	"bytes"
 	"os"
 	"strings"
 	"testing"
@@ -22,7 +23,10 @@ func TestDump(t *testing.T) {
 		}
 	}
 
-	dr, err := dit.New("./data/system", "./data/ntds.dit")
+	b1, _ := os.ReadFile("./data/system")
+	b2, _ := os.ReadFile("./data/ntds.dit")
+
+	dr, err := dit.New(bytes.NewReader(b1), bytes.NewReader(b2), len(b2))
 	if err != nil {
 		t.Fatal(err)
 	}
