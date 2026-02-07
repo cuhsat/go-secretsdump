@@ -3,30 +3,24 @@ package system
 import (
 	"encoding/hex"
 	"fmt"
-	"os"
+	"io"
 
 	"golang.org/x/text/encoding/unicode"
 	"www.velocidex.com/golang/regparser"
 )
 
+var sbox = [16]int{8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7}
+
 type Reader struct {
-	path string
+	reader io.ReaderAt
 }
 
-func New(path string) *Reader {
-	return &Reader{path: path}
+func New(r io.ReaderAt) *Reader {
+	return &Reader{reader: r}
 }
 
 func (r *Reader) BootKey() (key []byte, err error) {
-	f, err := os.Open(r.path)
-
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() { _ = f.Close() }()
-
-	reg, err := regparser.NewRegistry(f)
+	reg, err := regparser.NewRegistry(r.reader)
 
 	if err != nil {
 		return nil, err
@@ -57,8 +51,6 @@ func (r *Reader) BootKey() (key []byte, err error) {
 		tmp, _ = ud.String(string(b))
 	}
 
-	var sbox = [16]int{8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7}
-
 	sub, err := hex.DecodeString(tmp)
 
 	if err != nil {
@@ -73,15 +65,7 @@ func (r *Reader) BootKey() (key []byte, err error) {
 }
 
 func (r *Reader) HasNoLMHashPolicy() bool {
-	f, err := os.Open(r.path)
-
-	if err != nil {
-		return false
-	}
-
-	defer func() { _ = f.Close() }()
-
-	reg, err := regparser.NewRegistry(f)
+	reg, err := regparser.NewRegistry(r.reader)
 
 	if err != nil {
 		return false

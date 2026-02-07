@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"crypto/rc4"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 
@@ -14,26 +15,26 @@ import (
 )
 
 // New Creates a new dit dumper
-func New(system, ntds string) (Reader, error) {
+func New(system io.ReaderAt, ntds io.Reader, n int) (Reader, error) {
 	r := Reader{
-		isRemote:           false,
-		history:            false,
-		noLMHash:           true,
-		remoteOps:          "",
-		useVSSMethod:       false,
-		justNTLM:           false,
-		pwdLastSet:         false,
-		resumeSession:      "",
-		outputFileName:     "",
-		justUser:           "",
-		printUserStatus:    false,
-		systemHiveLocation: system,
-		ntdsFileLocation:   ntds,
-		userData:           make(chan Credentials, 500),
+		isRemote:        false,
+		history:         false,
+		noLMHash:        true,
+		remoteOps:       "",
+		useVSSMethod:    false,
+		justNTLM:        false,
+		pwdLastSet:      false,
+		resumeSession:   "",
+		outputFileName:  "",
+		justUser:        "",
+		printUserStatus: false,
+		system:          system,
+		ntds:            ntds,
+		userData:        make(chan Credentials, 500),
 	}
 
 	var err error
-	r.db, err = ese.New(ntds)
+	r.db, err = ese.New(ntds, n)
 	if err != nil {
 		return r, err
 	}
@@ -54,13 +55,13 @@ type Reader struct {
 	noLMHash  bool
 	remoteOps string
 
-	useVSSMethod       bool
-	justNTLM           bool
-	pwdLastSet         bool
-	resumeSession      string
-	outputFileName     string
-	systemHiveLocation string
-	ntdsFileLocation   string
+	useVSSMethod   bool
+	justNTLM       bool
+	pwdLastSet     bool
+	resumeSession  string
+	outputFileName string
+	system         io.ReaderAt
+	ntds           io.Reader
 
 	justUser        string
 	printUserStatus bool
@@ -92,15 +93,15 @@ func (d *Reader) Dump() error {
 	var err error
 
 	//if local (always local for now)
-	if d.systemHiveLocation != "" {
-		ls := system.New(d.systemHiveLocation)
+	if d.system != nil {
+		ls := system.New(d.system)
 		d.bootKey, err = ls.BootKey()
 
 		if err != nil {
 			return err
 		}
 
-		if d.ntdsFileLocation != "" {
+		if d.ntds != nil {
 			d.noLMHash = ls.HasNoLMHashPolicy()
 		}
 	} else {
