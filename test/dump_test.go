@@ -36,7 +36,7 @@ func TestDump(t *testing.T) {
 			t.Errorf("found unexpected value: %s", ok.String())
 		}
 		//check history too
-		for _, h := range ok.HistoryStrings() {
+		for _, h := range ok.GetHistory() {
 			if _, found := corretkerb[h]; !found {
 				t.Errorf("found unexpected value: %s", h)
 			}

@@ -3,44 +3,44 @@ package dit
 import (
 	"encoding/hex"
 	"fmt"
-	"unicode"
 )
 
-type uacFlags struct {
-	Script                     bool
-	AccountDisable             bool
-	HomeDirRequired            bool
-	Lockout                    bool
-	PasswdNotReqd              bool
-	EncryptedTextPwdAllowed    bool
-	TempDupAccount             bool
-	NormalAccount              bool
-	InterDomainTrustAcct       bool
-	WorkstationTrustAccount    bool
-	ServerTrustAccount         bool
-	DontExpirePassword         bool
-	MNSLogonAccount            bool
-	SmartcardRequired          bool
-	TrustedForDelegation       bool
-	NotDelegated               bool
-	UseDESOnly                 bool
-	DontPreauth                bool
-	PasswordExpired            bool
-	TrustedToAuthForDelegation bool
-	PartialSecrets             bool
-}
-type Info struct {
-	Username string   `json:"username,omitempty"`
-	Lm       []byte   `json:"lm,omitempty"`
-	Nt       []byte   `json:"nt,omitempty"`
-	Rid      uint32   `json:"rid,omitempty"`
-	Enabled  bool     `json:"enabled,omitempty"`
-	UAC      uacFlags `json:"uac,omitempty"`
-	Supp     SuppInfo `json:"supp,omitempty"`
-	History  History  `json:"history,omitempty"`
+type Credentials struct {
+	Username     string       `json:"username,omitempty"`
+	Lm           []byte       `json:"lm,omitempty"`
+	Nt           []byte       `json:"nt,omitempty"`
+	Rid          uint32       `json:"rid,omitempty"`
+	Enabled      bool         `json:"enabled,omitempty"`
+	Uac          Flags        `json:"uac,omitempty"`
+	Supplemental Supplemental `json:"supplemental,omitempty"`
+	History      History      `json:"history,omitempty"`
 }
 
-type SuppInfo struct {
+type Flags struct {
+	Script                       bool `json:"script,omitempty"`
+	AccountDisable               bool `json:"account_disable,omitempty"`
+	HomeDirRequired              bool `json:"home_dir_required,omitempty"`
+	Lockout                      bool `json:"lockout,omitempty"`
+	PasswordNotRequired          bool `json:"password_not_required,omitempty"`
+	EncryptedTextPasswordAllowed bool `json:"encrypted_text_password_allowed,omitempty"`
+	TemporaryDupAccount          bool `json:"temporary_dup_account,omitempty"`
+	NormalAccount                bool `json:"normal_account,omitempty"`
+	InterDomainTrustAccount      bool `json:"inter_domain_trust_account,omitempty"`
+	WorkstationTrustAccount      bool `json:"workstation_trust_account,omitempty"`
+	ServerTrustAccount           bool `json:"server_trust_account,omitempty"`
+	DontExpirePassword           bool `json:"dont_expire_password,omitempty"`
+	MNSLogonAccount              bool `json:"mns_logon_account,omitempty"`
+	SmartCardRequired            bool `json:"smart_card_required,omitempty"`
+	TrustedForDelegation         bool `json:"trusted_for_delegation,omitempty"`
+	NotDelegated                 bool `json:"not_delegated,omitempty"`
+	UseDESOnly                   bool `json:"use_des_only,omitempty"`
+	DontPreAuth                  bool `json:"dont_pre_auth,omitempty"`
+	PasswordExpired              bool `json:"password_expired,omitempty"`
+	TrustedToAuthForDelegation   bool `json:"trusted_to_auth_for_delegation,omitempty"`
+	PartialSecrets               bool `json:"partial_secrets,omitempty"`
+}
+
+type Supplemental struct {
 	Username     string   `json:"username,omitempty"`
 	Password     string   `json:"password,omitempty"`
 	NotASCII     bool     `json:"not_ascii,omitempty"`
@@ -52,72 +52,70 @@ type History struct {
 	Nt [][]byte `json:"nt,omitempty"`
 }
 
-func (d Info) String() string {
+func (c Credentials) String() string {
 	answer := fmt.Sprintf("%s:%d:%s:%s:::",
-		d.Username,
-		d.Rid,
-		hex.EncodeToString(d.Lm),
-		hex.EncodeToString(d.Nt))
+		c.Username,
+		c.Rid,
+		hex.EncodeToString(c.Lm),
+		hex.EncodeToString(c.Nt))
 	return answer
 }
 
-func (d Info) HistoryStrings() []string {
-	r := make([]string, 0, len(d.History.Nt))
+func (c Credentials) GetHistory() []string {
+	h := make([]string, 0, len(c.History.Nt))
 
-	for i, v := range d.History.Lm {
-		r = append(r, fmt.Sprintf("%s_history%d:%d:%s:%s:::",
-			d.Username,
+	for i, v := range c.History.Lm {
+		h = append(h, fmt.Sprintf("%s_history%d:%d:%s:%s:::",
+			c.Username,
 			i,
-			d.Rid,
+			c.Rid,
 			hex.EncodeToString(v),
 			hex.EncodeToString(EmptyNT),
 		))
 	}
 
-	for i, v := range d.History.Nt {
-		r = append(r, fmt.Sprintf("%s_history%d:%d:%s:%s:::",
-			d.Username,
+	for i, v := range c.History.Nt {
+		h = append(h, fmt.Sprintf("%s_history%d:%d:%s:%s:::",
+			c.Username,
 			i,
-			d.Rid,
+			c.Rid,
 			hex.EncodeToString(EmptyLM),
 			hex.EncodeToString(v),
 		))
 	}
-	return r
+
+	return h
 }
 
-// this is a dumb way of doing it,
-// but I've had too many rums to think of the actual way
-func decodeUAC(val int) uacFlags {
-	r := uacFlags{}
-	r.Script = val|1 == val
-	r.AccountDisable = val|2 == val
-	r.HomeDirRequired = val|8 == val
-	r.Lockout = val|6 == val
-	r.PasswdNotReqd = val|32 == val
-	r.EncryptedTextPwdAllowed = val|128 == val
-	r.TempDupAccount = val|256 == val
-	r.NormalAccount = val|512 == val
-	r.InterDomainTrustAcct = val|2048 == val
-	r.WorkstationTrustAccount = val|4096 == val
-	r.ServerTrustAccount = val|8192 == val
-	r.DontExpirePassword = val|65536 == val
-	r.MNSLogonAccount = val|131072 == val
-	r.SmartcardRequired = val|262144 == val
-	r.TrustedForDelegation = val|524288 == val
-	r.NotDelegated = val|1048576 == val
-	r.UseDESOnly = val|2097152 == val
-	r.DontPreauth = val|4194304 == val
-	r.PasswordExpired = val|8388608 == val
-	r.TrustedToAuthForDelegation = val|16777216 == val
-	r.PartialSecrets = val|67108864 == val
-	return r
+func decodeUAC(v int) Flags {
+	return Flags{
+		Script:                       v|1 == v,
+		AccountDisable:               v|2 == v,
+		HomeDirRequired:              v|8 == v,
+		Lockout:                      v|6 == v,
+		PasswordNotRequired:          v|32 == v,
+		EncryptedTextPasswordAllowed: v|128 == v,
+		TemporaryDupAccount:          v|256 == v,
+		NormalAccount:                v|512 == v,
+		InterDomainTrustAccount:      v|2048 == v,
+		WorkstationTrustAccount:      v|4096 == v,
+		ServerTrustAccount:           v|8192 == v,
+		DontExpirePassword:           v|65536 == v,
+		MNSLogonAccount:              v|131072 == v,
+		SmartCardRequired:            v|262144 == v,
+		TrustedForDelegation:         v|524288 == v,
+		NotDelegated:                 v|1048576 == v,
+		UseDESOnly:                   v|2097152 == v,
+		DontPreAuth:                  v|4194304 == v,
+		PasswordExpired:              v|8388608 == v,
+		TrustedToAuthForDelegation:   v|16777216 == v,
+		PartialSecrets:               v|67108864 == v,
+	}
 }
 
-// https://stackoverflow.com/questions/53069040/checking-a-string-contains-only-ascii-characters
 func isASCII(s string) bool {
 	for i := 0; i < len(s); i++ {
-		if s[i] > unicode.MaxASCII {
+		if s[i] > 0x7F {
 			return false
 		}
 	}
