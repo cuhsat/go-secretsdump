@@ -305,9 +305,9 @@ func (e *Esent_record) SetString(column string, codePage uint32) error {
 	return nil
 }
 
-func (v *Esent_recordVal) SetString(codePage uint32) {
-	v.typ = Str
-	v.codePage = codePage
+func (e *Esent_recordVal) SetString(codePage uint32) {
+	e.typ = Str
+	e.codePage = codePage
 }
 
 func (e *Esent_record) GetLongVal(column string) (int32, bool) {
@@ -344,23 +344,23 @@ func (e *Esent_record) StrVal(column string) (string, error) {
 
 var d = unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM).NewDecoder()
 
-func (v Esent_recordVal) String() (string, error) {
-	if v.codePage == 20127 { //ascii
+func (e *Esent_recordVal) String() (string, error) {
+	if e.codePage == 20127 { //ascii
 		//v easy
-		return string(v.val), nil
-	} else if v.codePage == 1200 { // Unicode oh boy
+		return string(e.val), nil
+	} else if e.codePage == 1200 { // Unicode oh boy
 		// Unicode utf16le
 
-		b, err := d.Bytes(v.val)
+		b, err := d.Bytes(e.val)
 		return string(b), err
 		//record.Column[column] = Esent_recordVal{Typ: "Str", StrVal: string(b)}
-	} else if v.codePage == 1252 {
+	} else if e.codePage == 1252 {
 		d := charmap.Windows1252.NewDecoder()
-		b, err := d.Bytes(v.val)
+		b, err := d.Bytes(e.val)
 		return string(b), err
 		//western... idk yet
 	}
-	return "", fmt.Errorf("unknown codepage=%v", v.codePage)
+	return "", fmt.Errorf("unknown codepage=%v", e.codePage)
 }
 
 func (e *Esent_record) GetRecord(column string) *Esent_recordVal {
@@ -424,54 +424,54 @@ func (e *Esent_recordVal) UpdateBytVal(d []byte) *Esent_recordVal {
 	return e
 }
 
-func (r *Esent_recordVal) UnpackInline(c columns_catalog_data_definition_entry) {
+func (e *Esent_recordVal) UnpackInline(c columns_catalog_data_definition_entry) {
 	//if cRecord.Columns.ColumnType == JET_coltypText || cRecord.Columns.ColumnType == JET_coltypLongText {
 	//record.SetString(column, cRecord.Columns.CodePage)
 	t := c.ColumnType
-	if len(r.val) < 1 {
+	if len(e.val) < 1 {
 		return
 	}
 	switch t {
 	case JET_coltypNil:
-		r.typ = Nil
+		e.typ = Nil
 	case JET_coltypBit:
-		r.typ = Bit
+		e.typ = Bit
 	case JET_coltypUnsignedByte:
-		r.typ = UnsByt
+		e.typ = UnsByt
 	case JET_coltypShort:
-		r.typ = Short
+		e.typ = Short
 	case JET_coltypLong:
-		r.typ = Long
+		e.typ = Long
 	case JET_coltypCurrency:
-		r.typ = Curr
+		e.typ = Curr
 	case JET_coltypIEEESingle:
-		r.typ = IEEESingl
+		e.typ = IEEESingl
 	case JET_coltypIEEEDouble:
-		r.typ = IEEEDoub
+		e.typ = IEEEDoub
 	case JET_coltypDateTime:
-		r.typ = DateTim
+		e.typ = DateTim
 	case JET_coltypBinary:
-		r.typ = Bin
+		e.typ = Bin
 	case JET_coltypText:
-		r.typ = Txt
-		r.SetString(c.CodePage)
+		e.typ = Txt
+		e.SetString(c.CodePage)
 	case JET_coltypLongBinary:
-		r.typ = LongBin
+		e.typ = LongBin
 	case JET_coltypLongText:
-		r.typ = LongTxt
-		r.SetString(c.CodePage)
+		e.typ = LongTxt
+		e.SetString(c.CodePage)
 	case JET_coltypSLV:
-		r.typ = SLV
+		e.typ = SLV
 	case JET_coltypUnsignedLong:
-		r.typ = UnsLng
+		e.typ = UnsLng
 	case JET_coltypLongLong:
-		r.typ = LngLng
+		e.typ = LngLng
 	case JET_coltypGUID:
-		r.typ = Guid
+		e.typ = Guid
 	case JET_coltypUnsignedShort:
-		r.typ = UnsShrt
+		e.typ = UnsShrt
 	case JET_coltypMax:
-		r.typ = Max
+		e.typ = Max
 	}
 }
 
