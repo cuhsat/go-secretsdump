@@ -19,7 +19,7 @@ type fileInMem struct {
 
 type Esedb struct {
 	//options?
-	reader       io.Reader
+	reader       *bytes.Reader
 	pageSize     uint32
 	db           *fileInMem
 	dbHeader     esent_db_header
@@ -35,7 +35,7 @@ var stringCodePages = map[uint32]string{
 	1252:  "cp1252",
 } //standin for const lookup/enum thing
 
-func New(r io.Reader, n int) (*Esedb, error) {
+func New(r *bytes.Reader, n int) (*Esedb, error) {
 	//create the esedb structure
 	db := &Esedb{
 		reader:   r,

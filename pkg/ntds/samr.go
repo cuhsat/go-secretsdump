@@ -1,4 +1,4 @@
-package dit
+package ntds
 
 import (
 	"bytes"

@@ -1,9 +1,9 @@
 package system
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
-	"io"
 
 	"golang.org/x/text/encoding/unicode"
 	"www.velocidex.com/golang/regparser"
@@ -12,10 +12,10 @@ import (
 var sbox = [16]int{8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7}
 
 type Reader struct {
-	reader io.ReaderAt
+	reader *bytes.Reader
 }
 
-func New(r io.ReaderAt) *Reader {
+func New(r *bytes.Reader) *Reader {
 	return &Reader{reader: r}
 }
 

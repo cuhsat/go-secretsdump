@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cuhsat/go-secretsdump/pkg/dit"
+	"github.com/cuhsat/go-secretsdump/pkg/ntds"
 )
 
 func TestDump(t *testing.T) {
@@ -26,15 +26,11 @@ func TestDump(t *testing.T) {
 	b1, _ := os.ReadFile("./data/system")
 	b2, _ := os.ReadFile("./data/ntds.dit")
 
-	dr, err := dit.New(bytes.NewReader(b1), bytes.NewReader(b2), len(b2))
+	ch, err := ntds.New(bytes.NewReader(b1), bytes.NewReader(b2), len(b2))
 	if err != nil {
 		t.Fatal(err)
 	}
-	go func() {
-		_ = dr.Dump()
-	}()
-	dataChan := dr.Chan()
-	for ok := range dataChan {
+	for ok := range ch {
 		//ensure it exists (don't find values that are not in impacket... yet)
 		if _, found := corretkerb[ok.String()]; !found {
 			t.Errorf("found unexpected value: %s", ok.String())
