@@ -1,21 +1,21 @@
 package system
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
+	"io"
 
 	"golang.org/x/text/encoding/unicode"
 	"www.velocidex.com/golang/regparser"
 )
 
-var sbox = [16]int{8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7}
+var transform = [16]int{8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7}
 
 type Reader struct {
-	reader *bytes.Reader
+	reader io.ReaderAt
 }
 
-func New(r *bytes.Reader) *Reader {
+func New(r io.ReaderAt) *Reader {
 	return &Reader{reader: r}
 }
 
@@ -58,7 +58,7 @@ func (r *Reader) BootKey() (key []byte, err error) {
 	}
 
 	for i := 0; i < len(sub); i++ {
-		key = append(key, sub[sbox[i]])
+		key = append(key, sub[transform[i]])
 	}
 
 	return key, nil
