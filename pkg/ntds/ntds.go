@@ -163,9 +163,11 @@ func (d *Reader) getPek() ([][]byte, error) {
 	var pekList []byte
 	for {
 		record, err := d.db.GetNextRow(d.cursor)
+
 		if err != nil && err.Error() != "ignore" {
 			return nil, err
 		}
+
 		if err != nil && err.Error() == "ignore" {
 			break //lol fml
 		}

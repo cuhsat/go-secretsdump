@@ -231,9 +231,9 @@ func (e esent_catalog_data_definition_entry) Init(inData []byte) (esent_catalog_
 		} else if r.Fixed.Type == CATALOG_TYPE_LONG_VALUE {
 			r.LV.SpaceUsage = binary.LittleEndian.Uint32(getAndMoveCursor(inData, &curs, 4))
 		} else if r.Fixed.Type == CATALOG_TYPE_CALLBACK {
-			return r, fmt.Errorf("Catalog type callback unexpected")
+			return r, fmt.Errorf("catalog type callback unexpected")
 		} else {
-			return esent_catalog_data_definition_entry{}, errors.New("Unkown Type")
+			return esent_catalog_data_definition_entry{}, errors.New("unkown Type")
 		}
 	}
 	//fill in common stuff
@@ -318,7 +318,7 @@ func (e *Esent_record) GetLongVal(column string) (int32, bool) {
 	return 0, ok
 }
 
-func (e Esent_recordVal) Long() int32 {
+func (e *Esent_recordVal) Long() int32 {
 	return int32(binary.LittleEndian.Uint32(e.val))
 }
 
@@ -330,7 +330,7 @@ func (e *Esent_record) GetBytVal(column string) ([]byte, bool) {
 	return nil, ok
 }
 
-func (e Esent_recordVal) Bytes() []byte {
+func (e *Esent_recordVal) Bytes() []byte {
 	return e.val
 }
 
@@ -339,7 +339,7 @@ func (e *Esent_record) StrVal(column string) (string, error) {
 	if ok {
 		return v.String()
 	}
-	return "", fmt.Errorf("No value found")
+	return "", fmt.Errorf("no value found")
 }
 
 var d = unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM).NewDecoder()
@@ -360,7 +360,7 @@ func (v Esent_recordVal) String() (string, error) {
 		return string(b), err
 		//western... idk yet
 	}
-	return "", fmt.Errorf("Unknown codepage=%v", v.codePage)
+	return "", fmt.Errorf("unknown codepage=%v", v.codePage)
 }
 
 func (e *Esent_record) GetRecord(column string) *Esent_recordVal {
@@ -381,8 +381,6 @@ func (e *Esent_record) GetNilRecord(column string) *Esent_recordVal {
 	}
 }
 
-// alternative way of doing this (and probably better) would be casting everything back
-// to a byte array that can be cleanly printed.
 type Esent_recordVal struct {
 	tupVal [][]byte
 	val    []byte
