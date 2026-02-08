@@ -10,42 +10,51 @@ import (
 )
 
 func TestDump(t *testing.T) {
-	//get valid output files
-	s, e := os.ReadFile("data/ntds.txt")
-	if e != nil {
-		t.Error("Could not read from file")
-	}
-	corretkerb := make(map[string]bool, len(s))
-	sa := strings.Split(string(s), "\n")
-	for _, v := range sa {
-		if v != "" {
-			corretkerb[v] = true
-		}
-	}
+	txt, err := os.ReadFile("data/ntds.txt")
 
-	b1, _ := os.ReadFile("./data/system")
-	b2, _ := os.ReadFile("./data/ntds.dit")
-
-	ch, err := ntds.New(bytes.NewReader(b1), bytes.NewReader(b2), len(b2))
 	if err != nil {
 		t.Fatal(err)
 	}
-	for ok := range ch {
-		//ensure it exists (don't find values that are not in impacket... yet)
-		if _, found := corretkerb[ok.String()]; !found {
-			t.Errorf("found unexpected value: %s", ok.String())
-		}
-		//check history too
-		for _, h := range ok.GetHistory() {
-			if _, found := corretkerb[h]; !found {
-				t.Errorf("found unexpected value: %s", h)
-			}
-			delete(corretkerb, h)
-		}
-		//ensure we don't miss any that impacket finds
-		delete(corretkerb, ok.String())
+
+	reg, err := os.ReadFile("./data/system")
+
+	if err != nil {
+		t.Fatal(err)
 	}
-	if len(corretkerb) > 0 {
-		t.Errorf("Expected empty map. Unfound hashes: %+v", corretkerb)
+
+	dit, err := os.ReadFile("./data/ntds.dit")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m := make(map[string]any, len(txt))
+
+	for _, s := range strings.Split(string(txt), "\n") {
+		if len(s) > 0 {
+			m[s] = struct{}{}
+		}
+	}
+
+	ch, err := ntds.New(
+		bytes.NewReader(reg),
+		bytes.NewReader(dit),
+		len(dit),
+	)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for c := range ch {
+		if _, ok := m[c.String()]; !ok {
+			t.Errorf("unexpected hash: %s", c)
+		}
+
+		delete(m, c.String())
+	}
+
+	if len(m) > 0 {
+		t.Errorf("expected hashes: %+v", m)
 	}
 }

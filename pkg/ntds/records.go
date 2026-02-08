@@ -42,13 +42,14 @@ func (d *Reader) DecryptRecord(record ese.Esent_record) (Credentials, error) {
 				return dh, err
 			}
 		}
-		dh.Lm, err = RemoveDES(tmpLM, dh.Rid)
+		v, err = RemoveDES(tmpLM, dh.Rid)
 		if err != nil {
 			return dh, err
 		}
+		dh.Lm = hex.EncodeToString(v)
 	} else {
 		//hard coded empty lm hash
-		dh.Lm = EmptyLM //, _ = hex.DecodeString("aad3b435b51404eeaad3b435b51404ee")
+		dh.Lm = hex.EncodeToString(EmptyLM) //, _ = hex.DecodeString("aad3b435b51404eeaad3b435b51404ee")
 	}
 
 	//nt hash
@@ -71,13 +72,14 @@ func (d *Reader) DecryptRecord(record ese.Esent_record) (Credentials, error) {
 				return dh, err
 			}
 		}
-		dh.Nt, err = RemoveDES(tmpNT, dh.Rid)
+		v, err = RemoveDES(tmpNT, dh.Rid)
 		if err != nil {
 			return dh, err
 		}
+		dh.Nt = hex.EncodeToString(v)
 	} else {
 		//hard coded empty NTLM hash
-		dh.Nt = EmptyNT //, _ = hex.DecodeString("31D6CFE0D16AE931B73C59D7E0C089C0")
+		dh.Nt = hex.EncodeToString(EmptyNT) //, _ = hex.DecodeString("31D6CFE0D16AE931B73C59D7E0C089C0")
 	}
 
 	// account name
@@ -110,7 +112,7 @@ func (d *Reader) DecryptRecord(record ese.Esent_record) (Credentials, error) {
 			for i := 16; i < len(tmphst); i += 16 {
 				hst1 := tmphst[i : i+16]
 				hst2, err := RemoveDES(hst1, dh.Rid)
-				dh.History.Lm = append(dh.History.Lm, hst2)
+				dh.History.Lm = append(dh.History.Lm, hex.EncodeToString(hst2))
 				if err != nil {
 					return dh, err
 				}
@@ -144,7 +146,7 @@ func (d *Reader) DecryptRecord(record ese.Esent_record) (Credentials, error) {
 			if err != nil {
 				return dh, err
 			}
-			dh.History.Nt = append(dh.History.Nt, hst2)
+			dh.History.Nt = append(dh.History.Nt, hex.EncodeToString(hst2))
 		}
 
 	}
@@ -166,7 +168,7 @@ func (d *Reader) DecryptRecord(record ese.Esent_record) (Credentials, error) {
 	return dh, nil
 }
 
-func (d *Reader) decryptSupp(record ese.Esent_record) (Supplemental, error) {
+func (d *Reader) decryptSupp(record ese.Esent_record) (*Supplemental, error) {
 	r := Supplemental{}
 
 	bval, _ := record.GetBytVal(nsupplementalCredentials) // record.Column[nsupplementalCredentials"]]
@@ -183,7 +185,7 @@ func (d *Reader) decryptSupp(record ese.Esent_record) (Supplemental, error) {
 		//fmt.Println(val.BytVal)
 		ct, err := NewCryptedHash(bval)
 		if err != nil {
-			return r, err
+			return &r, err
 		}
 		//ct := crypted_hash{}.Init(val.BytVal)
 
@@ -195,16 +197,16 @@ func (d *Reader) decryptSupp(record ese.Esent_record) (Supplemental, error) {
 				ct.EncryptedHash[4:],
 				ct.KeyMaterial[:])
 			if err != nil {
-				return r, err
+				return &r, err
 			}
 		} else {
 			plainBytes, err = d.removeRC4(ct)
 			if err != nil {
-				return r, err
+				return &r, err
 			}
 		}
 		if len(plainBytes) < 100 {
-			return r, fmt.Errorf("bad length for user properties: expecting >100 got %d ", len(plainBytes))
+			return &r, fmt.Errorf("bad length for user properties: expecting >100 got %d ", len(plainBytes))
 		}
 		props := NewSAMRUserProperties(plainBytes)
 
@@ -255,5 +257,5 @@ func (d *Reader) decryptSupp(record ese.Esent_record) (Supplemental, error) {
 		}
 	}
 
-	return r, nil
+	return &r, nil
 }

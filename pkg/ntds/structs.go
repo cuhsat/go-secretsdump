@@ -1,19 +1,16 @@
 package ntds
 
-import (
-	"encoding/hex"
-	"fmt"
-)
+import "fmt"
 
 type Credentials struct {
-	Username     string       `json:"username,omitempty"`
-	Lm           []byte       `json:"lm,omitempty"`
-	Nt           []byte       `json:"nt,omitempty"`
-	Rid          uint32       `json:"rid,omitempty"`
-	Enabled      bool         `json:"enabled,omitempty"`
-	Uac          Flags        `json:"uac,omitempty"`
-	Supplemental Supplemental `json:"supplemental,omitempty"`
-	History      History      `json:"history,omitempty"`
+	Username     string        `json:"username,omitempty"`
+	Lm           string        `json:"lm,omitempty"`
+	Nt           string        `json:"nt,omitempty"`
+	Rid          uint32        `json:"rid,omitempty"`
+	Enabled      bool          `json:"enabled,omitempty"`
+	Uac          *Flags        `json:"uac,omitempty"`
+	Supplemental *Supplemental `json:"supplemental,omitempty"`
+	History      *History      `json:"history,omitempty"`
 }
 
 type Flags struct {
@@ -48,47 +45,21 @@ type Supplemental struct {
 }
 
 type History struct {
-	Lm [][]byte `json:"lm,omitempty"`
-	Nt [][]byte `json:"nt,omitempty"`
+	Lm []string `json:"lm,omitempty"`
+	Nt []string `json:"nt,omitempty"`
 }
 
 func (c Credentials) String() string {
-	answer := fmt.Sprintf("%s:%d:%s:%s:::",
+	return fmt.Sprintf("%s:%d:%s:%s:::",
 		c.Username,
 		c.Rid,
-		hex.EncodeToString(c.Lm),
-		hex.EncodeToString(c.Nt))
-	return answer
+		c.Lm,
+		c.Nt,
+	)
 }
 
-func (c Credentials) GetHistory() []string {
-	h := make([]string, 0, len(c.History.Nt))
-
-	for i, v := range c.History.Lm {
-		h = append(h, fmt.Sprintf("%s_history%d:%d:%s:%s:::",
-			c.Username,
-			i,
-			c.Rid,
-			hex.EncodeToString(v),
-			hex.EncodeToString(EmptyNT),
-		))
-	}
-
-	for i, v := range c.History.Nt {
-		h = append(h, fmt.Sprintf("%s_history%d:%d:%s:%s:::",
-			c.Username,
-			i,
-			c.Rid,
-			hex.EncodeToString(EmptyLM),
-			hex.EncodeToString(v),
-		))
-	}
-
-	return h
-}
-
-func decodeUAC(v int) Flags {
-	return Flags{
+func decodeUAC(v int) *Flags {
+	return &Flags{
 		Script:                       v|1 == v,
 		AccountDisable:               v|2 == v,
 		HomeDirRequired:              v|8 == v,
@@ -119,5 +90,6 @@ func isASCII(s string) bool {
 			return false
 		}
 	}
+
 	return true
 }
