@@ -93,14 +93,14 @@ type Reader struct {
 
 	resumeSessionMgr bool // nil
 
-	db       *ese.Esedb
+	db       *ese.Ese
 	cursor   *ese.Cursor
 	pek      [][]byte
-	tmpUsers []ese.Esent_record
+	tmpUsers []ese.Record
 
 	//output chans
 	ch          chan Credentials
-	decryptWork chan ese.Esent_record
+	decryptWork chan ese.Record
 	cryptwg     *sync.WaitGroup
 
 	//settings Settings
@@ -172,13 +172,15 @@ func (d *Reader) getPek() ([][]byte, error) {
 			break //lol fml
 		}
 
-		if v, ok := record.GetBytVal(npekList); ok && len(v) > 0 {
+		if //goland:noinspection GoDfaErrorMayBeNotNil
+		v, ok := record.GetBytVal(npekList); ok && len(v) > 0 {
 			//if v, ok := record.Column[pekList"]]; ok && len(v.BytVal) > 0 {
 			pekList = v
 			break
 		}
 
-		if r := record.GetNilRecord(nsAMAccountType); r != nil {
+		if //goland:noinspection GoDfaErrorMayBeNotNil
+		r := record.GetNilRecord(nsAMAccountType); r != nil {
 			//users found?
 			d.tmpUsers = append(d.tmpUsers, record)
 		}

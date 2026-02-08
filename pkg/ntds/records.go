@@ -11,7 +11,7 @@ import (
 	"golang.org/x/text/encoding/unicode"
 )
 
-func (d *Reader) DecryptRecord(record ese.Esent_record) (Credentials, error) {
+func (d *Reader) DecryptRecord(record ese.Record) (Credentials, error) {
 	dh := Credentials{}
 	v, _ := record.GetBytVal(nobjectSid)
 	sid, err := NewSAMRRPCSID(v) //record.Column[z].BytVal)
@@ -168,7 +168,7 @@ func (d *Reader) DecryptRecord(record ese.Esent_record) (Credentials, error) {
 	return dh, nil
 }
 
-func (d *Reader) decryptSupp(record ese.Esent_record) (*Supplemental, error) {
+func (d *Reader) decryptSupp(record ese.Record) (*Supplemental, error) {
 	r := Supplemental{}
 
 	bval, _ := record.GetBytVal(nsupplementalCredentials) // record.Column[nsupplementalCredentials"]]

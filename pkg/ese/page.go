@@ -6,16 +6,16 @@ import (
 )
 
 type page struct {
-	dbHeader esent_db_header
+	dbHeader dbHeader
 	data     []byte
-	record   esent_page_header
+	record   pageHeader
 	cached   bool
 	//reads    uint64
 }
 
 func (p *page) getHeader() error {
 	//decide on record type (ugh)
-	p.record = esent_page_header{}
+	p.record = pageHeader{}
 	//data := make([]byte, len(inData))
 	//copy(data, inData)
 	p.record.Len = 40 //all record lengths are 40, except the extended
