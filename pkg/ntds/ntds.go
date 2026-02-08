@@ -6,6 +6,7 @@ import (
 	"crypto/md5"
 	"crypto/rc4"
 	"fmt"
+	"io"
 	"os"
 	"sync"
 
@@ -15,8 +16,13 @@ import (
 	"github.com/cuhsat/go-secretsdump/pkg/system"
 )
 
+type Readable interface {
+	io.Reader
+	io.ReaderAt
+}
+
 // New Creates a new dit dumper
-func New(system, ntds *bytes.Reader, size int) (<-chan Credentials, error) {
+func New(system, ntds Readable, size int) (<-chan Credentials, error) {
 	var err error
 
 	r := &Reader{
@@ -76,8 +82,8 @@ type Reader struct {
 	pwdLastSet     bool
 	resumeSession  string
 	outputFileName string
-	system         *bytes.Reader
-	ntds           *bytes.Reader
+	system         Readable
+	ntds           Readable
 
 	justUser        string
 	printUserStatus bool
