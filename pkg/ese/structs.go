@@ -10,20 +10,20 @@ import (
 	"golang.org/x/text/encoding/unicode"
 )
 
-type cat_entry struct {
-	esent_leaf_entry
-	Header esent_data_definition_header        //??
-	Record esent_catalog_data_definition_entry //??
+type categoryEntry struct {
+	leafEntry
+	Header dataDefinitionHeader //??
+	Record dataDefinitionEntry  //??
 	Key    string
 	KeyInt int
 }
 type table struct {
 	Name       string
-	TableEntry esent_leaf_entry
-	Columns    *cat_entries //map[string]cat_entr
+	TableEntry leafEntry
+	Columns    *categoryEntries
 }
 
-type esent_page_header struct {
+type pageHeader struct {
 	CheckSum                     uint64
 	ECCCheckSum                  uint32
 	LastModificationTime         uint64
@@ -44,20 +44,20 @@ type esent_page_header struct {
 	Len uint16
 }
 
-type esent_jet_sig struct {
+type jetSig struct {
 	Random       uint32
 	CreationTime uint64
 	NetBiosName  [16]byte
 }
 
-type esent_db_header struct {
+type dbHeader struct {
 	//thank god there is no dynamic fields in this structure
 	CheckSum                   uint32
 	Signature                  [4]byte //"\xef\xcd\xab\x89'),
 	Version                    uint32
 	FileType                   uint32
 	DBTime                     uint64
-	DBSignature                esent_jet_sig //:',ESENT_JET_SIGNATURE),
+	DBSignature                jetSig //:',ESENT_JET_SIGNATURE),
 	DBState                    uint32
 	ConsistentPosition         uint64
 	ConsistentTime             uint64
@@ -65,7 +65,7 @@ type esent_db_header struct {
 	AttachPosition             uint64
 	DetachTime                 uint64
 	DetachPosition             uint64
-	LogSignature               esent_jet_sig //:',ESENT_JET_SIGNATURE),
+	LogSignature               jetSig //:',ESENT_JET_SIGNATURE),
 	Unknown                    uint32
 	PreviousBackup             [24]byte
 	PreviousIncBackup          [24]byte
@@ -110,7 +110,7 @@ type esent_db_header struct {
 	UnknownFlags               uint32
 }
 
-type esent_branch_entry struct {
+type branchEntry struct {
 	CommonPageKeySize uint16
 
 	LocalPageKeySize uint16
@@ -118,8 +118,9 @@ type esent_branch_entry struct {
 	ChildPageNumber  uint32
 }
 
-func (e esent_branch_entry) Init(flags uint16, data []byte) esent_branch_entry {
-	r := esent_branch_entry{}
+//goland:noinspection DuplicatedCode
+func (e branchEntry) Init(flags uint16, data []byte) branchEntry {
+	r := branchEntry{}
 	//zzzz
 	//data := make([]byte, len(ldata))
 	//copy(data, ldata)
@@ -144,7 +145,7 @@ func (e esent_branch_entry) Init(flags uint16, data []byte) esent_branch_entry {
 	return r
 }
 
-type esent_leaf_entry struct {
+type leafEntry struct {
 	CommonPageKeySize uint16
 
 	LocalPageKeySize uint16
@@ -153,8 +154,9 @@ type esent_leaf_entry struct {
 	EntryData    []byte // ":"
 }
 
-func (e esent_leaf_entry) Init(flags uint16, inData []byte) esent_leaf_entry {
-	r := esent_leaf_entry{}
+//goland:noinspection DuplicatedCode
+func (e leafEntry) Init(flags uint16, inData []byte) leafEntry {
+	r := leafEntry{}
 	curs := 0
 	//data := make([]byte, len(inData))
 
@@ -178,25 +180,25 @@ func (e esent_leaf_entry) Init(flags uint16, inData []byte) esent_leaf_entry {
 	return r
 }
 
-type esent_data_definition_header struct {
+type dataDefinitionHeader struct {
 	LastFixedSize        uint8
 	LastVariableDataType uint8
 	VariableSizeOffset   uint16
 }
 
-type esent_catalog_data_definition_entry struct {
-	Fixed   fixed_catalog_data_definition_entry
-	Columns columns_catalog_data_definition_entry
-	Other   other_catalog_data_definition_entry
-	Table   table_catalog_data_definition_entry
-	Index   index_catalog_data_definition_entry
-	LV      lV_catalog_data_definition_entry
-	Common  common_catalog_data_definition_entry
+type dataDefinitionEntry struct {
+	Fixed   catalogFixedDataDefinitionEntry
+	Columns catalogColumnsDataDefinitionEntry
+	Other   catalogOtherDataDefinitionEntry
+	Table   catalogTableDataDefinitionEntry
+	Index   catalogIndexDataDefinitionEntry
+	LV      catalogLvDataDefinitionEntry
+	Common  catalogCommonDataDefinitionEntry
 }
 
-func (e esent_catalog_data_definition_entry) Init(inData []byte) (esent_catalog_data_definition_entry, error) {
+func (e dataDefinitionEntry) Init(inData []byte) (dataDefinitionEntry, error) {
 	curs := 0
-	r := esent_catalog_data_definition_entry{}
+	r := dataDefinitionEntry{}
 	//fill in fixed
 	buffer := bytes.NewBuffer(getAndMoveCursor(inData, &curs, 10))
 	err := binary.Read(buffer, binary.LittleEndian, &r.Fixed)
@@ -233,7 +235,7 @@ func (e esent_catalog_data_definition_entry) Init(inData []byte) (esent_catalog_
 		} else if r.Fixed.Type == CatalogTypeCallback {
 			return r, fmt.Errorf("catalog type callback unexpected")
 		} else {
-			return esent_catalog_data_definition_entry{}, errors.New("unkown Type")
+			return dataDefinitionEntry{}, errors.New("unkown Type")
 		}
 	}
 	//fill in common stuff
@@ -248,32 +250,32 @@ func getAndMoveCursor(data []byte, curs *int, size int) []byte {
 	return d
 }
 
-type fixed_catalog_data_definition_entry struct {
+type catalogFixedDataDefinitionEntry struct {
 	FatherDataPageID uint32
 	Type             uint16
 	Identifier       uint32
 }
-type columns_catalog_data_definition_entry struct {
+type catalogColumnsDataDefinitionEntry struct {
 	ColumnType  uint32
 	SpaceUsage  uint32
 	ColumnFlags uint32
 	CodePage    uint32
 }
-type other_catalog_data_definition_entry struct {
+type catalogOtherDataDefinitionEntry struct {
 	FatherDataPageNumber uint32
 }
-type table_catalog_data_definition_entry struct {
+type catalogTableDataDefinitionEntry struct {
 	SpaceUsage uint32
 }
-type index_catalog_data_definition_entry struct {
+type catalogIndexDataDefinitionEntry struct {
 	SpaceUsage uint32
 	IndexFlags uint32
 	Locale     uint32
 }
-type lV_catalog_data_definition_entry struct {
+type catalogLvDataDefinitionEntry struct {
 	SpaceUsage uint32
 }
-type common_catalog_data_definition_entry struct {
+type catalogCommonDataDefinitionEntry struct {
 	Trailing []byte
 }
 
@@ -284,16 +286,16 @@ type Cursor struct {
 	TableData            *table
 }
 
-type Esent_record struct {
-	column map[string]*Esent_recordVal
+type Record struct {
+	column map[string]*RecordValue
 }
 
-func NewRecord(i int) Esent_record {
-	return Esent_record{column: make(map[string]*Esent_recordVal, i)}
+func NewRecord(i int) Record {
+	return Record{column: make(map[string]*RecordValue, i)}
 }
 
 // SetString sets the codepage of the specified column on the record, and marks the record as a 'string'
-func (e *Esent_record) SetString(column string, codePage uint32) error {
+func (e *Record) SetString(column string, codePage uint32) error {
 	if e.column[column] == nil {
 		//this should probably be a proper error
 		return nil
@@ -305,12 +307,12 @@ func (e *Esent_record) SetString(column string, codePage uint32) error {
 	return nil
 }
 
-func (e *Esent_recordVal) SetString(codePage uint32) {
+func (e *RecordValue) SetString(codePage uint32) {
 	e.typ = Str
 	e.codePage = codePage
 }
 
-func (e *Esent_record) GetLongVal(column string) (int32, bool) {
+func (e *Record) GetLongVal(column string) (int32, bool) {
 	v, ok := e.column[column]
 	if v != nil && ok {
 		return v.Long(), ok
@@ -318,11 +320,11 @@ func (e *Esent_record) GetLongVal(column string) (int32, bool) {
 	return 0, ok
 }
 
-func (e *Esent_recordVal) Long() int32 {
+func (e *RecordValue) Long() int32 {
 	return int32(binary.LittleEndian.Uint32(e.val))
 }
 
-func (e *Esent_record) GetBytVal(column string) ([]byte, bool) {
+func (e *Record) GetBytVal(column string) ([]byte, bool) {
 	v, ok := e.column[column]
 	if ok {
 		return v.Bytes(), ok
@@ -330,11 +332,11 @@ func (e *Esent_record) GetBytVal(column string) ([]byte, bool) {
 	return nil, ok
 }
 
-func (e *Esent_recordVal) Bytes() []byte {
+func (e *RecordValue) Bytes() []byte {
 	return e.val
 }
 
-func (e *Esent_record) StrVal(column string) (string, error) {
+func (e *Record) StrVal(column string) (string, error) {
 	v, ok := e.column[column]
 	if ok {
 		return v.String()
@@ -344,7 +346,7 @@ func (e *Esent_record) StrVal(column string) (string, error) {
 
 var d = unicode.UTF16(unicode.LittleEndian, unicode.IgnoreBOM).NewDecoder()
 
-func (e *Esent_recordVal) String() (string, error) {
+func (e *RecordValue) String() (string, error) {
 	if e.codePage == 20127 { //ascii
 		//v easy
 		return string(e.val), nil
@@ -363,16 +365,16 @@ func (e *Esent_recordVal) String() (string, error) {
 	return "", fmt.Errorf("unknown codepage=%v", e.codePage)
 }
 
-func (e *Esent_record) GetRecord(column string) *Esent_recordVal {
+func (e *Record) GetRecord(column string) *RecordValue {
 	if r, ok := e.column[column]; ok {
 		return r
 	}
-	r := &Esent_recordVal{}
+	r := &RecordValue{}
 	e.column[column] = r
 	return r
 }
 
-func (e *Esent_record) GetNilRecord(column string) *Esent_recordVal {
+func (e *Record) GetNilRecord(column string) *RecordValue {
 	if v, ok := e.column[column]; !ok {
 		//e.column[column] = &Esent_recordVal{}
 		return nil
@@ -381,7 +383,7 @@ func (e *Esent_record) GetNilRecord(column string) *Esent_recordVal {
 	}
 }
 
-type Esent_recordVal struct {
+type RecordValue struct {
 	tupVal [][]byte
 	val    []byte
 	//strVal   string
@@ -390,6 +392,8 @@ type Esent_recordVal struct {
 }
 
 // Data types possible in an ese database
+//
+//goland:noinspection GoUnusedConst
 const (
 	Byt recordTyp = iota
 	Tup
@@ -417,14 +421,14 @@ const (
 
 type recordTyp int
 
-func (e *Esent_recordVal) UpdateBytVal(d []byte) *Esent_recordVal {
+func (e *RecordValue) UpdateBytVal(d []byte) *RecordValue {
 	e.typ = Byt
 	//fmt.Println("record", d)
 	e.val = d
 	return e
 }
 
-func (e *Esent_recordVal) UnpackInline(c columns_catalog_data_definition_entry) {
+func (e *RecordValue) UnpackInline(c catalogColumnsDataDefinitionEntry) {
 	//if cRecord.Columns.ColumnType == JET_coltypText || cRecord.Columns.ColumnType == JET_coltypLongText {
 	//record.SetString(column, cRecord.Columns.CodePage)
 	t := c.ColumnType
@@ -475,38 +479,38 @@ func (e *Esent_recordVal) UnpackInline(c columns_catalog_data_definition_entry) 
 	}
 }
 
-type tag_item struct {
+type taggedItem struct {
 	TaggedOffset uint16
 	TagLen       uint16
 	Flags        uint16
 }
 
 type taggedItems struct {
-	M []*tag_item
+	M []*taggedItem
 	O []uint16
 }
 
-func (t *taggedItems) Add(tag *tag_item, k uint16) {
+func (t *taggedItems) Add(tag *taggedItem, k uint16) {
 	//NOT THREAD SAFE
 	t.O = append(t.O, k)
 	t.M = append(t.M, tag)
 	//t.M[k] = &tag
 }
 
-type cat_entries struct {
-	values []cat_entry
+type categoryEntries struct {
+	values []categoryEntry
 }
 
-func (o *cat_entries) Add(value cat_entry) {
+func (o *categoryEntries) Add(value categoryEntry) {
 	o.values = append(o.values, value)
 }
 
-type OrderedMap_esent_leaf_entry struct {
-	values map[string]esent_leaf_entry
+type OrderedLeafEntry struct {
+	values map[string]leafEntry
 	keys   []string
 }
 
-func (o *OrderedMap_esent_leaf_entry) Add(key string, value esent_leaf_entry) {
+func (o *OrderedLeafEntry) Add(key string, value leafEntry) {
 	_, exists := o.values[key]
 	if !exists {
 		o.keys = append(o.keys, key)

@@ -7,13 +7,13 @@ import (
 	"fmt"
 )
 
-func (e *Esedb) tagToRecord(c *Cursor, tag []byte) (Esent_record, error) {
+func (e *Ese) tagToRecord(c *Cursor, tag []byte) (Record, error) {
 	record := NewRecord(len(c.TableData.Columns.values))
 	//record := Esent_record{Column: make(map[string]*Esent_recordVal, len(c.TableData.Columns.keys))}
 	taggedI := taggedItems{}
 	taggedItemsParsed := false
 
-	ddHeader := esent_data_definition_header{}
+	ddHeader := dataDefinitionHeader{}
 	buffer := bytes.NewBuffer(tag)
 	err := binary.Read(buffer, binary.LittleEndian, &ddHeader)
 	if err != nil {
@@ -26,7 +26,7 @@ func (e *Esedb) tagToRecord(c *Cursor, tag []byte) (Esent_record, error) {
 	fixedSizeOffset := uint32(4) //len ddheader
 	vsOffset := ddHeader.VariableSizeOffset
 	for i := 0; i < len(c.TableData.Columns.values); i++ {
-		var val *Esent_recordVal
+		var val *RecordValue
 		//for i, column := range c.TableData.Columns.keys {
 		cRecord := &c.TableData.Columns.values[i].Record
 		column := c.TableData.Columns.values[i].Key
@@ -53,7 +53,7 @@ func (e *Esedb) tagToRecord(c *Cursor, tag []byte) (Esent_record, error) {
 				prevItemLen = itemLen
 			}
 		} else if cRecord.Fixed.Identifier > 255 {
-			var cRecordItem *tag_item
+			var cRecordItem *taggedItem
 			var ok bool
 			if !taggedItemsParsed && (uint16(vDataBytesProcessed)+vsOffset) < uint16(len(tag)) {
 				parseTaggedItems(vDataBytesProcessed, vsOffset, tag, e.dbHeader.Version, e.dbHeader.FileFormatRevision, pageSize, &taggedI, &taggedItemsParsed, uint16(cRecord.Fixed.Identifier), cRecordItem, &ok)
@@ -112,7 +112,7 @@ func (e *Esedb) tagToRecord(c *Cursor, tag []byte) (Esent_record, error) {
 	return record, nil
 }
 
-func parseTaggedItems(vDataBytesProcessed uint8, vsOffset uint16, tag []byte, version, rev, pageSize uint32, taggedI *taggedItems, taggedItemsParsed *bool, ident uint16, crecordItem *tag_item, ok *bool) {
+func parseTaggedItems(vDataBytesProcessed uint8, vsOffset uint16, tag []byte, version, rev, pageSize uint32, taggedI *taggedItems, taggedItemsParsed *bool, ident uint16, crecordItem *taggedItem, ok *bool) {
 	index := uint16(vDataBytesProcessed) + vsOffset //start index of the items to parse
 	endOfVS := pageSize
 	firstOffsetTag := (binary.LittleEndian.Uint16(tag[index+2:][:2]) & 0x3fff) + uint16(vDataBytesProcessed) + vsOffset
@@ -134,7 +134,7 @@ func parseTaggedItems(vDataBytesProcessed uint8, vsOffset uint16, tag []byte, ve
 		if uint32(taggedOffset) < endOfVS {
 			endOfVS = uint32(taggedOffset)
 		}
-		tagItem := tag_item{
+		tagItem := taggedItem{
 			TaggedOffset: taggedOffset,
 			TagLen:       uint16(len(tag)),
 			Flags:        flagsPresent,
