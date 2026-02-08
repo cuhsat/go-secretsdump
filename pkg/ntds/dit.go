@@ -1,22 +1,25 @@
-package dit
+package ntds
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"crypto/rc4"
 	"fmt"
-	"io"
 	"os"
 	"sync"
 
-	"github.com/cuhsat/go-secretsdump/pkg/system"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/cuhsat/go-secretsdump/pkg/ese"
+	"github.com/cuhsat/go-secretsdump/pkg/system"
 )
 
 // New Creates a new dit dumper
-func New(system io.ReaderAt, ntds io.Reader, n int) (Reader, error) {
-	r := Reader{
+func New(system, ntds *bytes.Reader, size int) (<-chan Credentials, error) {
+	var err error
+
+	r := &Reader{
 		isRemote:        false,
 		history:         false,
 		noLMHash:        true,
@@ -30,21 +33,34 @@ func New(system io.ReaderAt, ntds io.Reader, n int) (Reader, error) {
 		printUserStatus: false,
 		system:          system,
 		ntds:            ntds,
-		userData:        make(chan Credentials, 500),
+		ch:              make(chan Credentials, 1024),
 	}
 
-	var err error
-	r.db, err = ese.New(ntds, n)
+	r.db, err = ese.New(ntds, size)
+
 	if err != nil {
-		return r, err
+		return nil, err
 	}
+
 	r.cursor, err = r.db.OpenTable("datatable")
-	if err != nil {
-		return r, err
-	}
-	//go r.dump() //start dumping the file immediately output will be put into the output channel as it comes
 
-	return r, err
+	if err != nil {
+		return nil, err
+	}
+
+	errs, _ := errgroup.WithContext(context.Background())
+
+	errs.Go(func() error {
+		return r.dump()
+	})
+
+	err = errs.Wait()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return r.ch, nil
 }
 
 type Reader struct {
@@ -60,8 +76,8 @@ type Reader struct {
 	pwdLastSet     bool
 	resumeSession  string
 	outputFileName string
-	system         io.ReaderAt
-	ntds           io.Reader
+	system         *bytes.Reader
+	ntds           *bytes.Reader
 
 	justUser        string
 	printUserStatus bool
@@ -77,19 +93,14 @@ type Reader struct {
 	tmpUsers []ese.Esent_record
 
 	//output chans
-	userData    chan Credentials
+	ch          chan Credentials
 	decryptWork chan ese.Esent_record
 	cryptwg     *sync.WaitGroup
 
 	//settings Settings
 }
 
-// Chan returns a reference to the objects output channel for read only operations
-func (d *Reader) Chan() <-chan Credentials {
-	return d.userData
-}
-
-func (d *Reader) Dump() error {
+func (d *Reader) dump() error {
 	var err error
 
 	//if local (always local for now)
@@ -133,12 +144,12 @@ func (d *Reader) Dump() error {
 					fmt.Println("Coudln't decrypt record:", err.Error())
 					continue
 				}
-				d.userData <- dh
+				d.ch <- dh
 
 			}
 		}
 	}
-	close(d.userData)
+	close(d.ch)
 	return nil
 }
 
