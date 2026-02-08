@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-type esent_page struct {
+type page struct {
 	dbHeader esent_db_header
 	data     []byte
 	record   esent_page_header
@@ -13,7 +13,7 @@ type esent_page struct {
 	//reads    uint64
 }
 
-func (p *esent_page) getHeader() error {
+func (p *page) getHeader() error {
 	//decide on record type (ugh)
 	p.record = esent_page_header{}
 	//data := make([]byte, len(inData))
@@ -73,7 +73,7 @@ func (p *esent_page) getHeader() error {
 	return nil
 }
 
-func (p *esent_page) getTag(i int) (pageFlags uint16, tagData []byte, err error) {
+func (p *page) getTag(i int) (pageFlags uint16, tagData []byte, err error) {
 	if int(p.record.FirstAvailablePageTag) < i {
 		return 0, nil, fmt.Errorf("trying to grab tag??? 0x%x", i)
 	}

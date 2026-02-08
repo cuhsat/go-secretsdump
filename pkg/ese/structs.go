@@ -125,7 +125,7 @@ func (e esent_branch_entry) Init(flags uint16, data []byte) esent_branch_entry {
 	//copy(data, ldata)
 	//take first 2 bytes of data if common flag is set
 	curs := 0
-	if flags&TAG_COMMON > 0 {
+	if flags&TagCommon > 0 {
 		r.CommonPageKeySize = binary.LittleEndian.Uint16(data[:2])
 		//data = data[2:]
 		curs += 2
@@ -160,7 +160,7 @@ func (e esent_leaf_entry) Init(flags uint16, inData []byte) esent_leaf_entry {
 
 	//copy(data, inData)
 	//take first 2 bytes of data if common flag is set
-	if flags&TAG_COMMON > 0 {
+	if flags&TagCommon > 0 {
 		r.CommonPageKeySize = binary.LittleEndian.Uint16(inData[:2])
 		//data = data[2:]
 		curs += 2
@@ -205,7 +205,7 @@ func (e esent_catalog_data_definition_entry) Init(inData []byte) (esent_catalog_
 	}
 
 	//this is where it gets hairy :(
-	if r.Fixed.Type == CATALOG_TYPE_COLUMN {
+	if r.Fixed.Type == CatalogTypeColumn {
 		//only one with no 'other' section
 		//fill in column stuff
 		buffer := bytes.NewBuffer(getAndMoveCursor(inData, &curs, 16))
@@ -218,19 +218,19 @@ func (e esent_catalog_data_definition_entry) Init(inData []byte) (esent_catalog_
 		//fill in 'other'
 		r.Other.FatherDataPageNumber = binary.LittleEndian.Uint32(getAndMoveCursor(inData, &curs, 4))
 
-		if r.Fixed.Type == CATALOG_TYPE_TABLE {
+		if r.Fixed.Type == CatalogTypeTable {
 			//do 'table stuff'
 			r.Table.SpaceUsage = binary.LittleEndian.Uint32(getAndMoveCursor(inData, &curs, 4))
-		} else if r.Fixed.Type == CATALOG_TYPE_INDEX {
+		} else if r.Fixed.Type == CatalogTypeIndex {
 			//index stuff
 			buffer := bytes.NewBuffer(getAndMoveCursor(inData, &curs, 12))
 			err := binary.Read(buffer, binary.LittleEndian, &r.Index)
 			if err != nil {
 				return r, err
 			}
-		} else if r.Fixed.Type == CATALOG_TYPE_LONG_VALUE {
+		} else if r.Fixed.Type == CatalogTypeLongValue {
 			r.LV.SpaceUsage = binary.LittleEndian.Uint32(getAndMoveCursor(inData, &curs, 4))
-		} else if r.Fixed.Type == CATALOG_TYPE_CALLBACK {
+		} else if r.Fixed.Type == CatalogTypeCallback {
 			return r, fmt.Errorf("catalog type callback unexpected")
 		} else {
 			return esent_catalog_data_definition_entry{}, errors.New("unkown Type")
@@ -280,7 +280,7 @@ type common_catalog_data_definition_entry struct {
 type Cursor struct {
 	CurrentTag           uint32
 	FatherDataPageNumber uint32
-	CurrentPageData      *esent_page
+	CurrentPageData      *page
 	TableData            *table
 }
 
@@ -432,45 +432,45 @@ func (e *Esent_recordVal) UnpackInline(c columns_catalog_data_definition_entry) 
 		return
 	}
 	switch t {
-	case JET_coltypNil:
+	case JetColtypnil:
 		e.typ = Nil
-	case JET_coltypBit:
+	case JetColtypbit:
 		e.typ = Bit
-	case JET_coltypUnsignedByte:
+	case JetColtypunsignedbyte:
 		e.typ = UnsByt
-	case JET_coltypShort:
+	case JetColtypshort:
 		e.typ = Short
-	case JET_coltypLong:
+	case JetColtyplong:
 		e.typ = Long
-	case JET_coltypCurrency:
+	case JetColtypcurrency:
 		e.typ = Curr
-	case JET_coltypIEEESingle:
+	case JetColtypieeesingle:
 		e.typ = IEEESingl
-	case JET_coltypIEEEDouble:
+	case JetColtypieeedouble:
 		e.typ = IEEEDoub
-	case JET_coltypDateTime:
+	case JetColtypdatetime:
 		e.typ = DateTim
-	case JET_coltypBinary:
+	case JetColtypbinary:
 		e.typ = Bin
-	case JET_coltypText:
+	case JetColtyptext:
 		e.typ = Txt
 		e.SetString(c.CodePage)
-	case JET_coltypLongBinary:
+	case JetColtyplongbinary:
 		e.typ = LongBin
-	case JET_coltypLongText:
+	case JetColtyplongtext:
 		e.typ = LongTxt
 		e.SetString(c.CodePage)
-	case JET_coltypSLV:
+	case JetColtypslv:
 		e.typ = SLV
-	case JET_coltypUnsignedLong:
+	case JetColtypunsignedlong:
 		e.typ = UnsLng
-	case JET_coltypLongLong:
+	case JetColtyplonglong:
 		e.typ = LngLng
-	case JET_coltypGUID:
+	case JetColtypguid:
 		e.typ = Guid
-	case JET_coltypUnsignedShort:
+	case JetColtypunsignedshort:
 		e.typ = UnsShrt
-	case JET_coltypMax:
+	case JetColtypmax:
 		e.typ = Max
 	}
 }

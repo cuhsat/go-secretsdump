@@ -14,7 +14,7 @@ import (
 // todo: update to handle massive files better (so we don't saturate memory too bad)
 type fileInMem struct {
 	//data  []byte
-	pages []*esent_page
+	pages []*page
 }
 
 type Esedb struct {
@@ -72,7 +72,7 @@ func (e *Esedb) OpenTable(s string) (*Cursor, error) {
 
 		//determine the page number to retreive
 		pageNum := catEnt.Other.FatherDataPageNumber
-		var page *esent_page
+		var page *page
 		var done = false
 		for !done {
 			page = e.getPage(pageNum)
@@ -81,7 +81,7 @@ func (e *Esedb) OpenTable(s string) (*Cursor, error) {
 				break
 			}
 			for i := uint16(1); i < page.record.FirstAvailablePageTag; i++ {
-				if page.record.PageFlags&FLAGS_LEAF == 0 {
+				if page.record.PageFlags&FlagsLeaf == 0 {
 					flags, data, err := page.getTag(int(i))
 					if err != nil {
 						//TODO: decide if we want to error, or die
@@ -116,7 +116,7 @@ func (e *Esedb) mountDb(r io.Reader, n int) (err error) {
 	}
 	// this was a gross way of working out how many pages the file has...
 	//this is where everything actually gets parsed out
-	_ = e.parseCatalog(CATALOG_PAGE_NUMBER) //4  ?
+	_ = e.parseCatalog(CatalogPageNumber) //4  ?
 
 	return
 }
@@ -138,7 +138,7 @@ func (e *Esedb) parseCatalog(pagenum uint32) error {
 			return err
 		}
 		//if we are looking at a branch page
-		if page.record.PageFlags&FLAGS_LEAF == 0 {
+		if page.record.PageFlags&FlagsLeaf == 0 {
 			//create the branch entry from the flags and data retreived
 			branchEntry := esent_branch_entry{}.Init(flags, data)
 			//walk along the branch, and parse any referenced pages
@@ -147,11 +147,11 @@ func (e *Esedb) parseCatalog(pagenum uint32) error {
 	}
 	return nil
 }
-func (e *Esedb) parsePage(page *esent_page) error {
+func (e *Esedb) parsePage(page *page) error {
 	//baseOffset := page.record.Len // useless line?
-	if page.record.PageFlags&FLAGS_LEAF == 0 || //not a leaf, don't care
-		page.record.PageFlags&FLAGS_LEAF > 0 && (page.record.PageFlags&FLAGS_SPACE_TREE > 0 ||
-			page.record.PageFlags&FLAGS_INDEX > 0 || page.record.PageFlags&FLAGS_LONG_VALUE > 0) {
+	if page.record.PageFlags&FlagsLeaf == 0 || //not a leaf, don't care
+		page.record.PageFlags&FlagsLeaf > 0 && (page.record.PageFlags&FlagsSpaceTree > 0 ||
+			page.record.PageFlags&FlagsIndex > 0 || page.record.PageFlags&FlagsLongValue > 0) {
 		return nil
 	}
 
@@ -176,9 +176,9 @@ func (e *Esedb) GetNextRow(c *Cursor) (Esent_record, error) {
 
 	if page == nil || c.CurrentTag >= uint32(page.record.FirstAvailablePageTag) ||
 		//err = errors.New("ignore") //nil
-		(page.record.PageFlags&FLAGS_LEAF == 0 || //not a leaf, don't care
-			page.record.PageFlags&FLAGS_LEAF > 0 && (page.record.PageFlags&FLAGS_SPACE_TREE > 0 ||
-				page.record.PageFlags&FLAGS_INDEX > 0 || page.record.PageFlags&FLAGS_LONG_VALUE > 0)) {
+		(page.record.PageFlags&FlagsLeaf == 0 || //not a leaf, don't care
+			page.record.PageFlags&FlagsLeaf > 0 && (page.record.PageFlags&FlagsSpaceTree > 0 ||
+				page.record.PageFlags&FlagsIndex > 0 || page.record.PageFlags&FlagsLongValue > 0)) {
 
 		if page == nil || page.record.NextPageNumber == 0 { //no more pages :(
 			return Esent_record{}, errors.New("ignore")
@@ -216,7 +216,7 @@ func (e *Esedb) addLeaf(l esent_leaf_entry) error {
 		return err
 	}
 	//create table
-	if catEntry.Fixed.Type == CATALOG_TYPE_TABLE {
+	if catEntry.Fixed.Type == CatalogTypeTable {
 		//t := newTable(string(itemName))
 		///*
 		t := table{}
@@ -228,7 +228,7 @@ func (e *Esedb) addLeaf(l esent_leaf_entry) error {
 		//longvals
 		e.tables[string(itemName)] = &t
 		e.currentTable = string(itemName)
-	} else if catEntry.Fixed.Type == CATALOG_TYPE_COLUMN {
+	} else if catEntry.Fixed.Type == CatalogTypeColumn {
 		col := cat_entry{
 
 			esent_leaf_entry: esent_leaf_entry{
@@ -245,14 +245,14 @@ func (e *Esedb) addLeaf(l esent_leaf_entry) error {
 		//e.tables[e.currentTable].AddColumn(string(itemName))
 		e.tables[e.currentTable].Columns.Add(col)
 
-	} else if catEntry.Fixed.Type == CATALOG_TYPE_INDEX {
+	} else if catEntry.Fixed.Type == CatalogTypeIndex {
 
 		//if e.tables[e.currentTable].Columns == nil {
 		return nil
 		//}
 		//e.tables[e.currentTable].Indexes.Add(string(itemName), l)
 
-	} else if catEntry.Fixed.Type == CATALOG_TYPE_LONG_VALUE {
+	} else if catEntry.Fixed.Type == CatalogTypeLongValue {
 		//
 	} else {
 		return fmt.Errorf("reached code it shuldn't")
@@ -298,7 +298,7 @@ func (e *Esedb) loadPages(r io.Reader, n int) error {
 	e.pageSize = e.dbHeader.PageSize
 
 	pages := n / int(e.pageSize)
-	e.db.pages = make([]*esent_page, pages)
+	e.db.pages = make([]*page, pages)
 	e.totalPages = uint32(pages - 2) //unsure why -2 at this stage, I assume first page is header and last page is tail?
 
 	for i := uint32(1); i < e.totalPages; i++ {
@@ -311,7 +311,7 @@ func (e *Esedb) loadPages(r io.Reader, n int) error {
 		if int(end) > n {
 			end = uint32(n)
 		}
-		e.db.pages[i] = &esent_page{data: make([]byte, e.pageSize)}
+		e.db.pages[i] = &page{data: make([]byte, e.pageSize)}
 		r := e.db.pages[i]
 		_, _ = fr.Read(r.data)
 		r.dbHeader = e.dbHeader
@@ -324,7 +324,7 @@ func (e *Esedb) loadPages(r io.Reader, n int) error {
 }
 
 // retreives a page of data from the file?
-func (e *Esedb) getPage(pageNum uint32) *esent_page {
+func (e *Esedb) getPage(pageNum uint32) *page {
 	//check cache
 	r := e.db.pages[pageNum+1]
 	if r != nil {

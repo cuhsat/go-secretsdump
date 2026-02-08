@@ -79,10 +79,10 @@ func (e *Esedb) tagToRecord(c *Cursor, tag []byte) (Esent_record, error) {
 				} else {
 					itemFlag = 0
 				}
-				if itemFlag&TAGGED_DATA_TYPE_COMPRESSED != 0 {
+				if itemFlag&TaggedDataTypeCompressed != 0 {
 					//delete too slow
 					//record.DeleteColumn(column)
-				} else if itemFlag&TAGGED_DATA_TYPE_MULTI_VALUE != 0 {
+				} else if itemFlag&TaggedDataTypeMultiValue != 0 {
 					//todo parse mutli vals properly or something?
 					//log an error??
 					itemSize = uint16(len(tag[offsetItem:]))

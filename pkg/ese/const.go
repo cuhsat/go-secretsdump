@@ -2,40 +2,52 @@ package ese
 
 const pageSize = 8192
 
-const FLAGS_LEAF = 2
-const FLAGS_SPACE_TREE = 0x20
-const FLAGS_INDEX = 0x40
-const FLAGS_LONG_VALUE = 0x80
+const (
+	FlagsLeaf      = 2
+	FlagsSpaceTree = 0x20
+	FlagsIndex     = 0x40
+	FlagsLongValue = 0x80
+)
 
-const TAG_COMMON = 0x4
+const (
+	TagCommon = 0x4
+)
 
-const CATALOG_PAGE_NUMBER = 4
+const (
+	CatalogPageNumber = 4
+)
 
-const CATALOG_TYPE_TABLE = 1
-const CATALOG_TYPE_COLUMN = 2
-const CATALOG_TYPE_INDEX = 3
-const CATALOG_TYPE_LONG_VALUE = 4
-const CATALOG_TYPE_CALLBACK = 5
+const (
+	CatalogTypeTable     = 1
+	CatalogTypeColumn    = 2
+	CatalogTypeIndex     = 3
+	CatalogTypeLongValue = 4
+	CatalogTypeCallback  = 5
+)
 
-const JET_coltypNil = 0
-const JET_coltypBit = 1
-const JET_coltypUnsignedByte = 2
-const JET_coltypShort = 3
-const JET_coltypLong = 4
-const JET_coltypCurrency = 5
-const JET_coltypIEEESingle = 6
-const JET_coltypIEEEDouble = 7
-const JET_coltypDateTime = 8
-const JET_coltypBinary = 9
-const JET_coltypText = 10
-const JET_coltypLongBinary = 11
-const JET_coltypLongText = 12
-const JET_coltypSLV = 13
-const JET_coltypUnsignedLong = 14
-const JET_coltypLongLong = 15
-const JET_coltypGUID = 16
-const JET_coltypUnsignedShort = 17
-const JET_coltypMax = 18
+const (
+	JetColtypnil           = 0
+	JetColtypbit           = 1
+	JetColtypunsignedbyte  = 2
+	JetColtypshort         = 3
+	JetColtyplong          = 4
+	JetColtypcurrency      = 5
+	JetColtypieeesingle    = 6
+	JetColtypieeedouble    = 7
+	JetColtypdatetime      = 8
+	JetColtypbinary        = 9
+	JetColtyptext          = 10
+	JetColtyplongbinary    = 11
+	JetColtyplongtext      = 12
+	JetColtypslv           = 13
+	JetColtypunsignedlong  = 14
+	JetColtyplonglong      = 15
+	JetColtypguid          = 16
+	JetColtypunsignedshort = 17
+	JetColtypmax           = 18
+)
 
-const TAGGED_DATA_TYPE_COMPRESSED = 2
-const TAGGED_DATA_TYPE_MULTI_VALUE = 8
+const (
+	TaggedDataTypeCompressed = 2
+	TaggedDataTypeMultiValue = 8
+)

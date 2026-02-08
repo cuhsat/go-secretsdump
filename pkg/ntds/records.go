@@ -83,7 +83,7 @@ func (d *Reader) DecryptRecord(record ese.Esent_record) (Credentials, error) {
 	}
 
 	// account name
-	account_name, _ := record.StrVal(nsAMAccountName)
+	accountName, _ := record.StrVal(nsAMAccountName)
 
 	//username
 	if v, err := record.StrVal(nuserPrincipalName); err == nil && v != "" {
@@ -91,9 +91,9 @@ func (d *Reader) DecryptRecord(record ese.Esent_record) (Credentials, error) {
 		if pos := strings.LastIndex(domain, "@"); pos != -1 {
 			domain = domain[pos+1:]
 		}
-		dh.Username = fmt.Sprintf("%s\\%s", domain, account_name)
+		dh.Username = fmt.Sprintf("%s\\%s", domain, accountName)
 	} else {
-		dh.Username = account_name
+		dh.Username = accountName
 	}
 
 	//Password history LM
