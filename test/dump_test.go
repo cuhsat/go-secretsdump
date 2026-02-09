@@ -7,7 +7,10 @@ import (
 	"testing"
 
 	"github.com/cuhsat/go-secretsdump/pkg/ntds"
+	"github.com/cuhsat/go-secretsdump/pkg/system"
 )
+
+var bootkey = []byte{0x13, 0xd2, 0x09, 0x76, 0xd6, 0x3e, 0xa5, 0xe8, 0x36, 0x03, 0x6e, 0xc8, 0xbc, 0x68, 0xd6, 0xeb}
 
 func TestDump(t *testing.T) {
 	txt, err := os.ReadFile("data/ntds.txt")
@@ -26,6 +29,16 @@ func TestDump(t *testing.T) {
 
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	key, err := system.New(bytes.NewReader(reg)).BootKey()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(bootkey, key) {
+		t.Errorf("invalid bootkey: %+x", key)
 	}
 
 	m := make(map[string]any, len(txt))
